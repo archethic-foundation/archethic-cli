@@ -28,6 +28,8 @@ cd archethic-cli
 go build .
 ```
 
+On UNIX system, please note that you would need to install a clipboard utility if you want to be able to paste text/code (like xsel, xclip, wl-clipboard or Termux).
+
 ## Usage
 
 By default the CLI works as TUI (terminal user interface) application allowing the application to be interactive. 

@@ -277,7 +277,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if (m.activeTab == CONTENT_TAB && !m.contentModel.contentTextAreaInput.Focused()) ||
 				(m.activeTab == SMART_CONTRACT_TAB && !m.smartContractModel.smartContractTextAreaInput.Focused()) ||
 				(m.activeTab != CONTENT_TAB && m.activeTab != SMART_CONTRACT_TAB) {
-				m.activeTab = createTransactionTab(min(int(m.activeTab)+1, len(m.Tabs)-1))
+				m.activeTab = getNewTab(&m, int(m.activeTab)+1)
 				cmds = focusOnTab(&m)
 			} else if m.activeTab == CONTENT_TAB {
 				w, cmds := m.contentModel.Update(msg)
@@ -294,7 +294,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if (m.activeTab == CONTENT_TAB && !m.contentModel.contentTextAreaInput.Focused()) ||
 				(m.activeTab == SMART_CONTRACT_TAB && !m.smartContractModel.smartContractTextAreaInput.Focused()) ||
 				(m.activeTab != CONTENT_TAB && m.activeTab != SMART_CONTRACT_TAB) {
-				m.activeTab = createTransactionTab(max(int(m.activeTab)-1, 0))
+				m.activeTab = getNewTab(&m, int(m.activeTab)-1)
 				cmds = focusOnTab(&m)
 			} else if m.activeTab == CONTENT_TAB {
 				w, cmds := m.contentModel.Update(msg)
@@ -351,6 +351,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func getNewTab(m *Model, tabNb int) createTransactionTab {
+	switch {
+	case tabNb > len(m.Tabs)-1:
+		return 0
+	case tabNb < 0:
+		return createTransactionTab(len(m.Tabs) - 1)
+	default:
+		return createTransactionTab(tabNb)
+	}
+}
 func focusOnTab(m *Model) []tea.Cmd {
 	var cmds []tea.Cmd
 	switch m.activeTab {

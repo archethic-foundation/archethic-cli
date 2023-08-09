@@ -48,9 +48,10 @@ func (m RecipientsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 
 			if m.focusInput == 1 || m.focusInput == 0 {
+				m.feedback = ""
 				recipientHex := m.recipientsInput.Value()
 				recipient, err := hex.DecodeString(recipientHex)
-				if err != nil {
+				if err != nil || recipientHex == "" {
 					m.feedback = "Invalid recipient address"
 					return m, nil
 				}

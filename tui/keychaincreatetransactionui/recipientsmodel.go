@@ -135,8 +135,8 @@ func (m RecipientsModel) View() string {
 	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
 
 	startCount := 2 // 1 for the input, 1 for the button
-	for i, t := range m.transaction.Data.Recipients {
-		recipient := fmt.Sprintf("%s\n", hex.EncodeToString(t))
+	for i, r := range m.transaction.Data.Recipients {
+		recipient := fmt.Sprintf("%s\n", hex.EncodeToString(r.Address))
 		if m.focusInput == startCount+i {
 			b.WriteString(focusedStyle.Render(recipient))
 			continue

@@ -26,7 +26,7 @@ type SendTransactionData struct {
 	TransactionType string          `yaml:"transaction_type"`
 	UcoTransfers    []UCOTransfer   `yaml:"uco_transfers,omitempty"`
 	TokenTransfers  []TokenTransfer `yaml:"token_transfers,omitempty"`
-	Recipients      []string        `yaml:"recipients,omitempty"`
+	Recipients      []Recipient     `yaml:"recipients,omitempty"`
 	Ownerships      []Ownership     `yaml:"ownerships,omitempty"`
 	Content         string          `yaml:"content,omitempty"`
 	SmartContract   string          `yaml:"smart_contract,omitempty"`
@@ -50,12 +50,18 @@ type Ownership struct {
 	AuthorizedKeys []string `yaml:"authorized_keys"`
 }
 
+type Recipient struct {
+	Address  string `yaml:"address"`
+	Action   string `yaml:"action"`
+	ArgsJson string `yaml:"args_json"`
+}
+
 type ConfiguredTransaction struct {
 	accessSeed     []byte
 	index          int
 	ucoTransfers   []UCOTransfer
 	tokenTransfers []TokenTransfer
-	recipients     []string
+	recipients     []Recipient
 	ownerships     []Ownership
 	content        []byte
 	smartContract  string

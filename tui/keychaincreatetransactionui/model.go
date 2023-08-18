@@ -221,7 +221,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tokenTransferModel.transaction = &m.transaction
 		cmds = msg.cmds
 	case AddRecipient:
-		m.transaction.AddRecipient(msg.Recipient)
+		if msg.Action == "" && msg.ArgsJson == "" {
+			m.transaction.AddRecipient(msg.Address)
+		} else {
+			m.transaction.AddRecipientForNamedAction(msg.Address, []byte(msg.Action), []byte(msg.ArgsJson))
+		}
 		m.recipientsModel.transaction = &m.transaction
 		cmds = msg.cmds
 	case AddOwnership:

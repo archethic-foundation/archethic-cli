@@ -257,7 +257,12 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 		if recipient.Action == "" && recipient.ArgsJson == "" {
 			transaction.AddRecipient(recipientBytes)
 		} else {
-			transaction.AddRecipientForNamedAction(recipientBytes, []byte(recipient.Action), []byte(recipient.ArgsJson))
+			var args []interface{}
+			err := json.Unmarshal([]byte(recipient.ArgsJson), &args)
+			if err != nil {
+				return nil, err
+			}
+			transaction.AddRecipientForNamedAction(recipientBytes, []byte(recipient.Action), args)
 		}
 	}
 

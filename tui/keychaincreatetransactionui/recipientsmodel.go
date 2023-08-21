@@ -2,6 +2,7 @@ package keychaincreatetransactionui
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -181,7 +182,13 @@ func (m RecipientsModel) View() string {
 
 	startCount := len(m.recipientsInputs) + 1 // +1 for the button
 	for i, r := range m.transaction.Data.Recipients {
-		recipientStr := fmt.Sprintf("address=%s action=%s args=%s\n", hex.EncodeToString(r.Address), r.Action, r.ArgsJson)
+
+		argsJson, err := json.Marshal(r.Args)
+		if err != nil {
+			panic("invalid recipient's args")
+		}
+
+		recipientStr := fmt.Sprintf("address=%s action=%s args=%s\n", hex.EncodeToString(r.Address), r.Action, argsJson)
 		if m.focusInput == startCount+i {
 			b.WriteString(focusedStyle.Render(recipientStr))
 			continue

@@ -262,7 +262,7 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 			if err != nil {
 				return nil, err
 			}
-			transaction.AddRecipientForNamedAction(recipientBytes, []byte(recipient.Action), args)
+			transaction.AddRecipientWithNamedAction(recipientBytes, []byte(recipient.Action), args)
 		}
 	}
 

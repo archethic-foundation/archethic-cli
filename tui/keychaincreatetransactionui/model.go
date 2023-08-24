@@ -229,7 +229,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var args []interface{}
 			err := json.Unmarshal([]byte(msg.ArgsJson), &args)
 			if err == nil {
-				m.transaction.AddRecipientForNamedAction(msg.Address, []byte(msg.Action), args)
+				m.transaction.AddRecipientWithNamedAction(msg.Address, []byte(msg.Action), args)
 			} else {
 				m.feedback = "Invalid JSON"
 			}

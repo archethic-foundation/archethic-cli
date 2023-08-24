@@ -51,7 +51,7 @@ type Ownership struct {
 }
 
 type Recipient struct {
-	Address  string `yaml:"address"`
+	Address  string `yaml:"to"`
 	Action   string `yaml:"action"`
 	ArgsJson string `yaml:"args_json"`
 }

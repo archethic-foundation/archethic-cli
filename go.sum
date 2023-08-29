@@ -10,6 +10,10 @@ github.com/archethic-foundation/libgo v1.0.3 h1:VFI9MpxHouGUDGQRCjYaCB5905M1A/Sm
 github.com/archethic-foundation/libgo v1.0.3/go.mod h1:lGNlBfABjytcffeDgUnJlcN6aw24uODEpq54FnLwOhE=
 github.com/archethic-foundation/libgo v1.0.4 h1:F8Dmsy90BWJkWAXioU6ZC183EWiwRKNStA22cMMRhLk=
 github.com/archethic-foundation/libgo v1.0.4/go.mod h1:9qn6ks4Azt54DLL5FjUsTpp2RVIMJaVcoVGXx/ogV8Y=
+github.com/archethic-foundation/libgo v1.0.5 h1:33BqF4rZVdIFK54H+Jgi+oelHW1w3VW9XTiWaQ86JuY=
+github.com/archethic-foundation/libgo v1.0.5/go.mod h1:9qn6ks4Azt54DLL5FjUsTpp2RVIMJaVcoVGXx/ogV8Y=
+github.com/archethic-foundation/libgo v1.0.6 h1:99HyaYV4nZB+nngoiZiCCcWdfABTpXXJQBpaERTmNDU=
+github.com/archethic-foundation/libgo v1.0.6/go.mod h1:9qn6ks4Azt54DLL5FjUsTpp2RVIMJaVcoVGXx/ogV8Y=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=

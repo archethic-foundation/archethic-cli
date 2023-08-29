@@ -3,6 +3,7 @@ package cli
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -46,7 +47,6 @@ func extractTransactionFromInputFile(config string) (ConfiguredTransaction, Send
 func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction, error) {
 	index, _ := cmd.Flags().GetInt("index")
 	serviceName, _ := cmd.Flags().GetString("serviceName")
-	recipients, _ := cmd.Flags().GetStringSlice("recipients")
 
 	// extract uco transfers
 	ucoTransfersStr, _ := cmd.Flags().GetStringToString("uco-transfer")
@@ -88,7 +88,7 @@ func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction
 	}
 
 	// extract ownerships
-	ownershipsStr, _ := cmd.Flags().GetStringToString("ownerships")
+	ownershipsStr, _ := cmd.Flags().GetStringToString("ownership")
 	var ownerships []Ownership
 	mapSecretOwnership := mapOwnership(ownershipsStr)
 	for secret, authorizedKeys := range mapSecretOwnership {
@@ -96,6 +96,44 @@ func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction
 			Secret:         secret,
 			AuthorizedKeys: authorizedKeys,
 		})
+	}
+
+	// extract recipients
+	recipientsStr, _ := cmd.Flags().GetStringArray("recipient")
+	var recipients []Recipient
+	for _, recipientStr := range recipientsStr {
+		parts := strings.Split(recipientStr, "=")
+		address := parts[0]
+		jsonStr := strings.Join(parts[1:], "=")
+
+		if jsonStr == "" {
+			recipients = append(recipients, Recipient{
+				Address: address,
+			})
+		} else {
+			// we unmarshal the json to get the action
+			// and we marshal the args
+			var jsonAction map[string]interface{}
+			err := json.Unmarshal([]byte(jsonStr), &jsonAction)
+			if err != nil {
+				return ConfiguredTransaction{}, err
+			}
+
+			action := jsonAction["action"].(string)
+			args := jsonAction["args"]
+
+			argsJson, err := json.Marshal(args)
+			if err != nil {
+				return ConfiguredTransaction{}, err
+			}
+
+			recipients = append(recipients, Recipient{
+				Address:  address,
+				Action:   action,
+				ArgsJson: string(argsJson),
+			})
+		}
+
 	}
 
 	// extract content
@@ -211,11 +249,21 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 
 	// set recipients
 	for _, recipient := range configuredTransaction.recipients {
-		recipientBytes, err := hex.DecodeString(recipient)
+		recipientBytes, err := hex.DecodeString(recipient.Address)
 		if err != nil {
 			return nil, err
 		}
-		transaction.AddRecipient(recipientBytes)
+
+		if recipient.Action == "" && recipient.ArgsJson == "" {
+			transaction.AddRecipient(recipientBytes)
+		} else {
+			var args []interface{}
+			err := json.Unmarshal([]byte(recipient.ArgsJson), &args)
+			if err != nil {
+				return nil, err
+			}
+			transaction.AddRecipientWithNamedAction(recipientBytes, []byte(recipient.Action), args)
+		}
 	}
 
 	// set ownerships
@@ -368,11 +416,14 @@ func setupTransactionFlags(cmd *cobra.Command) {
 	cmd.Flags().Var(&transactionType, "transaction-type", "Transaction Type (keychain_access|keychain|transfer|hosting|token|data|contract|code_proposal|code_approval)")
 	cmd.Flags().StringToString("uco-transfer", map[string]string{}, "UCO Transfers (format: to=amount)")
 	cmd.Flags().StringToString("token-transfer", map[string]string{}, "Token Transfers (format: to=amount,token_address,token_id)")
-	cmd.Flags().StringSlice("recipients", []string{}, "Recipients")
-	cmd.Flags().StringToString("ownerships", map[string]string{}, "Ownerships (format: secret=authorization_key)")
+	// can't use StringToString for recipient because it cannot contains double quotes
+	// see https://github.com/spf13/pflag/issues/370
+	cmd.Flags().StringArray("recipient", []string{}, "Recipients (format: address=json_of_action)")
+	cmd.Flags().StringToString("ownership", map[string]string{}, "Ownerships (format: secret=authorization_key)")
 	cmd.Flags().String("content", "", "The file location of the content")
 	cmd.Flags().String("smart-contract", "", "The file location containing the smart Contract")
 	cmd.Flags().String("serviceName", "", "Service Name (required if creating a transaction for a service)")
+
 }
 
 func checkAccessSeed(accessSeed []byte) error {

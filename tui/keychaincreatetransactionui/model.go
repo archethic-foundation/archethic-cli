@@ -2,6 +2,7 @@ package keychaincreatetransactionui
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -221,7 +222,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tokenTransferModel.transaction = &m.transaction
 		cmds = msg.cmds
 	case AddRecipient:
-		m.transaction.AddRecipient(msg.Recipient)
+		m.feedback = ""
+		if msg.Action == "" && msg.ArgsJson == "" {
+			m.transaction.AddRecipient(msg.Address)
+		} else {
+			var args []interface{}
+			err := json.Unmarshal([]byte(msg.ArgsJson), &args)
+			if err == nil {
+				m.transaction.AddRecipientWithNamedAction(msg.Address, []byte(msg.Action), args)
+			} else {
+				m.feedback = "Invalid JSON"
+			}
+		}
 		m.recipientsModel.transaction = &m.transaction
 		cmds = msg.cmds
 	case AddOwnership:

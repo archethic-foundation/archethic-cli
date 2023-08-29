@@ -2,6 +2,7 @@ package keychaincreatetransactionui
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -11,24 +12,48 @@ import (
 )
 
 type RecipientsModel struct {
-	focusInput      int
-	recipientsInput textinput.Model
-	transaction     *archethic.TransactionBuilder
-	feedback        string
+	focusInput       int
+	recipientsInputs []textinput.Model
+	transaction      *archethic.TransactionBuilder
+	feedback         string
 }
 type AddRecipient struct {
-	Recipient []byte
-	cmds      []tea.Cmd
+	Address  []byte
+	Action   string
+	ArgsJson string
+	cmds     []tea.Cmd
 }
 type DeleteRecipient struct {
 	IndexToDelete int
 }
 
+const (
+	FIELD_TO     = 0
+	FIELD_ACTION = 1
+	FIELD_ARGS   = 2
+)
+
 func NewRecipientsModel(transaction *archethic.TransactionBuilder) RecipientsModel {
-	m := RecipientsModel{transaction: transaction}
-	m.recipientsInput = textinput.New()
-	m.recipientsInput.CursorStyle = cursorStyle
-	m.recipientsInput.Prompt = "> Recipient address:\n"
+	m := RecipientsModel{
+		recipientsInputs: make([]textinput.Model, 3),
+		transaction:      transaction,
+	}
+
+	toInput := textinput.New()
+	toInput.CursorStyle = cursorStyle
+	toInput.Prompt = "> To:\n"
+	m.recipientsInputs[FIELD_TO] = toInput
+
+	actionInput := textinput.New()
+	actionInput.CursorStyle = cursorStyle
+	actionInput.Prompt = "> Named action [optional]:\n"
+	m.recipientsInputs[FIELD_ACTION] = actionInput
+
+	argsInput := textinput.New()
+	argsInput.CursorStyle = cursorStyle
+	argsInput.Prompt = "> Arguments (JSON) [optional]:\n"
+	m.recipientsInputs[FIELD_ARGS] = argsInput
+
 	return m
 
 }
@@ -46,27 +71,39 @@ func (m RecipientsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			updateRecipientsFocusInput(&m, keypress)
 
 		case "enter":
-
-			if m.focusInput == 1 || m.focusInput == 0 {
+			if m.focusInput == len(m.recipientsInputs) {
 				m.feedback = ""
-				recipientHex := m.recipientsInput.Value()
-				recipient, err := hex.DecodeString(recipientHex)
-				if err != nil || recipientHex == "" {
-					m.feedback = "Invalid recipient address"
+
+				to := m.recipientsInputs[FIELD_TO].Value()
+				action := m.recipientsInputs[FIELD_ACTION].Value()
+				argsJson := m.recipientsInputs[FIELD_ARGS].Value()
+
+				toBin, err := hex.DecodeString(to)
+				if to == "" || err != nil {
+					m.feedback = "Invalid address"
 					return m, nil
 				}
-				m.recipientsInput.SetValue("")
+
+				m.recipientsInputs[FIELD_TO].SetValue("")
+				m.recipientsInputs[FIELD_ACTION].SetValue("")
+				m.recipientsInputs[FIELD_ARGS].SetValue("")
+
 				m, cmds := updateRecipientsFocus(m)
 				cmds = append(cmds, m.updateRecipientsInputs(msg)...)
 				return m, func() tea.Msg {
-					return AddRecipient{Recipient: recipient, cmds: cmds}
+
+					return AddRecipient{
+						Address:  toBin,
+						Action:   action,
+						ArgsJson: argsJson,
+						cmds:     cmds}
 				}
 			}
 
 		case "d":
 
-			if m.focusInput > 1 {
-				indexToDelete := m.focusInput - 2
+			if m.focusInput > len(m.recipientsInputs) {
+				indexToDelete := m.focusInput - len(m.recipientsInputs) - 1
 				m.focusInput--
 				return m, func() tea.Msg {
 					return DeleteRecipient{IndexToDelete: indexToDelete}
@@ -83,20 +120,25 @@ func (m RecipientsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *RecipientsModel) updateRecipientsInputs(msg tea.Msg) []tea.Cmd {
 
-	cmds := make([]tea.Cmd, 1)
-	m.recipientsInput, cmds[0] = m.recipientsInput.Update(msg)
-
+	cmds := make([]tea.Cmd, len(m.recipientsInputs))
+	for i := range m.recipientsInputs {
+		m.recipientsInputs[i], cmds[i] = m.recipientsInputs[i].Update(msg)
+	}
 	return cmds
 }
 
 func updateRecipientsFocus(m RecipientsModel) (RecipientsModel, []tea.Cmd) {
-	cmds := make([]tea.Cmd, 0)
-	if m.focusInput == 0 {
-		cmds = append(cmds, m.recipientsInput.Focus())
-	} else {
-		m.recipientsInput.Blur()
-		m.recipientsInput.PromptStyle = noStyle
-		m.recipientsInput.TextStyle = noStyle
+	cmds := make([]tea.Cmd, len(m.recipientsInputs))
+	for i := 0; i <= len(m.recipientsInputs)-1; i++ {
+		if i == m.focusInput {
+			// Set focused state
+			cmds[i] = m.recipientsInputs[i].Focus()
+			continue
+		}
+		// Remove focused state
+		m.recipientsInputs[i].Blur()
+		m.recipientsInputs[i].PromptStyle = noStyle
+		m.recipientsInputs[i].TextStyle = noStyle
 	}
 
 	return m, cmds
@@ -108,40 +150,50 @@ func updateRecipientsFocusInput(m *RecipientsModel, keypress string) {
 	} else {
 		m.focusInput++
 	}
-	// 1 because : first input [0] is the recipient address and second [1] is the button
-	if m.focusInput > 1+len(m.transaction.Data.Recipients) {
+	if m.focusInput > len(m.recipientsInputs)+len(m.transaction.Data.Recipients) {
 		m.focusInput = 0
 	} else if m.focusInput < 0 {
-		m.focusInput = 1 + len(m.transaction.Data.Recipients)
+		m.focusInput = len(m.recipientsInputs) + len(m.transaction.Data.Recipients)
 	}
 }
 
 func (m *RecipientsModel) SwitchTab() (RecipientsModel, []tea.Cmd) {
-	m.recipientsInput.Focus()
+	m.focusInput = 0
 	m2, cmds := updateRecipientsFocus(*m)
 	return m2, cmds
 }
 
 func (m RecipientsModel) View() string {
 	var b strings.Builder
-	b.WriteString(m.recipientsInput.View())
+	for i := range m.recipientsInputs {
+		b.WriteString(m.recipientsInputs[i].View())
+		if i < len(m.recipientsInputs)-1 {
+			b.WriteRune('\n')
+		}
+	}
 	b.WriteRune('\n')
 	b.WriteString(m.feedback)
 	b.WriteRune('\n')
 	button := &blurredButton
-	if m.focusInput == 1 {
+	if m.focusInput == len(m.recipientsInputs) {
 		button = &focusedButton
 	}
 	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
 
-	startCount := 2 // 1 for the input, 1 for the button
-	for i, t := range m.transaction.Data.Recipients {
-		recipient := fmt.Sprintf("%s\n", hex.EncodeToString(t))
+	startCount := len(m.recipientsInputs) + 1 // +1 for the button
+	for i, r := range m.transaction.Data.Recipients {
+
+		argsJson, err := json.Marshal(r.Args)
+		if err != nil {
+			panic("invalid recipient's args")
+		}
+
+		recipientStr := fmt.Sprintf("address=%s action=%s args=%s\n", hex.EncodeToString(r.Address), r.Action, argsJson)
 		if m.focusInput == startCount+i {
-			b.WriteString(focusedStyle.Render(recipient))
+			b.WriteString(focusedStyle.Render(recipientStr))
 			continue
 		} else {
-			b.WriteString(recipient)
+			b.WriteString(recipientStr)
 		}
 	}
 	if len(m.transaction.Data.Recipients) > 0 {

@@ -1,7 +1,7 @@
 # Archethic Command Line Interpreter
 
 This command line interface enables you to interact with the Archethic's blockchain within the terminal by providing snap features:
-- Generate transaction address 
+- Generate transaction address
 - Build & send transaction
 - Manage keychain (decentralized wallet)
     - Create and connect to your keychain (decentralized wallet)
@@ -32,11 +32,11 @@ On UNIX system, please note that you would need to install a clipboard utility i
 
 ## Usage
 
-By default the CLI works as TUI (terminal user interface) application allowing the application to be interactive. 
+By default the CLI works as TUI (terminal user interface) application allowing the application to be interactive.
 
 ### TUI
 To launch the archetic-cli with a TUI (terminal user interface), you need to call the executable without any flag. You could additionnally pass the `--ssh` flag (to use `~/.ssh/id_ed25519` or `~/.ssh/id_rsa`) or you can pass `--ssh-path` (with the location of your ssh key file). If a passphrase is needed, a prompt will appear to enter it), and the ssh key will be used as a seed.
-When launching the Archethic TUI you will access to the main menu that allows you to select an action. 
+When launching the Archethic TUI you will access to the main menu that allows you to select an action.
 
 - Generate an address
 - Build and send a transaction
@@ -44,7 +44,7 @@ When launching the Archethic TUI you will access to the main menu that allows yo
     - send tokens
     - interact with smart contract (recipients)
     - add ownerships and secret delegation
-    - add abritraty content 
+    - add abritraty content
     - add smart contract's code
 - Manage keychains
     - create a keychain with a given seed
@@ -82,8 +82,8 @@ Arguments:
 - `transaction-type`  (keychain_access|keychain|transfer|hosting|token|data|contract|code_proposal|code_approval) the transaction type. The default value is `transfer`.
 - `--uco-transfer` (destinationAddress(string)=amount(float)) the UCO transfers. You can create several UCO transfers in a transaction by passing the `uco-transfer` flag several times. The amount passed will be multiplied by 10^8.
 - `--token-transfer`  (to(string)=amount(float),token_address(string),token_id(integer)) the token transfers. You can create several token transfers in a transaction by passing the `token-transfer` flag several times. The amount passed will be multiplied by 10^8.
-- `--recipients` (string) the recipients. You can create several recipients in a transaction by passing the `recipients` flag several times. 
-- `--ownerships` (secret(string)=authorization_key(string)) the ownerships. You can create several ownerships in a transaction by passing the `ownerships` flag several times. In the sent transaction, the ownerships will be grouped by `secret`.
+- `--recipient` (address(string)=json_of_action(string)) a smart contract call. (example: `--recipient 000022...FC="{\"action\": \"upgrade\", \"args\": []}"`). You can create several by passing the `recipient` flag several times.
+- `--ownership` (secret(string)=authorization_key(string)) a secret. You can create several by passing the `ownership` flag several times.
 - `--content` (string) the path of the file containing the `content` of the transaction.
 - `--smart-contract` (string) the path of the file containing the `smart-contract` of the transaction.
 - `--serviceName` (string) the name of the service of the keychain. You want to use to create the transaction
@@ -123,6 +123,12 @@ ownerships:
   - secret: testtest
     authorized_keys:
       - 000150D4592BD0AC74BA6B5BAC49E505FB878F14DEED1692E5017ABFEFE49D060B6E
+recipients:
+  - to: 00002223BBD4EC3D64AE597696C7D7ADE1CEE65C639D885450AD2D7B75592AC76AFA
+  - to: 0000D574D171A484F8DEAC2D61FC3F7CC984BEB52465D69B3B5F670090742CBF5CCA
+    action: vote
+    args_json: |
+      ["Jean-Claude"]
 ```
 
 #### Get transaction fee
@@ -173,6 +179,6 @@ Arguments:
 - `--ssh` (bool) enables ssh option for the seed. If the `--ssh-path` flag is not set, it tries to open the default key files: first `~/.ssh/id_ed25519` and if it doesn't exist, then it tries `~/.ssh/id_rsa`. If `--ssh-path` is passed, then provided value is used. If a passphrase is needed, a prompt will appear to enter it. You can only pass either `--access-seed`, or a combination of `--ssh`/`--ssh-path` or `--mnemonic`.
 - `--ssh-path` (string) path to ssh key to generate a seed, if a passphrase is needed, a prompt will appear to enter it. You can only pass either `--access-seed`, or a combination of `--ssh`/`--ssh-path` or `--mnemonic`.
 - `mnemonic` (boolean) enable use of mnemonic (BIP39) for seed. If set a prompt asking for the list of words is displayed (default is false). You can only pass either `--access-seed`, or a combination of `--ssh`/`--ssh-path` or `--mnemonic`.
-  
+
 ## License
 [AGPL-3](/LICENCE)

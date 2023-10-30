@@ -268,7 +268,11 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 
 	// set ownerships
 	for _, ownership := range configuredTransaction.ownerships {
-		cipher, err := archethic.AesEncrypt([]byte(ownership.Secret), secretKey)
+		secretByte, err := archethic.MaybeConvertToHex(ownership.Secret)
+		if err != nil {
+			return nil, err
+		}
+		cipher, err := archethic.AesEncrypt(secretByte, secretKey)
 		if err != nil {
 			return nil, err
 		}

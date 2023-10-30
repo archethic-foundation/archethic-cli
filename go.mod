@@ -3,7 +3,8 @@ module github.com/archethic-foundation/archethic-cli
 go 1.20
 
 require (
-	github.com/archethic-foundation/libgo v1.0.7
+	github.com/archethic-foundation/libgo v1.0.8
+	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbles v0.16.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.7.1
@@ -19,7 +20,6 @@ require (
 require (
 	github.com/aead/ecdh v0.2.0 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
-	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/decred/dcrd/dcrec/edwards/v2 v2.0.3 // indirect

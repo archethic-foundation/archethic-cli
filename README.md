@@ -12,10 +12,21 @@ This command line interface enables you to interact with the Archethic's blockch
 
 ## Installation
 
-Download a pre-compiled binary or package from the [releases](https://github.com/archethic-foundation/archethic-cli/releases) page.
+### Mainnet's version
+
+Download a pre-compiled binary or package from the [releases](https://github.com/archethic-foundation/archethic-cli/releases) page, using the **Latest** version
 
 Or install it with go:
 
+```bash
+go install github.com/archethic-foundation/archethic-cli@v1.2.0
+```
+
+### Testnet's version
+
+If you want to try the latest release matching Archethic's testnet network
+
+You can install the latest version:
 ```bash
 go install github.com/archethic-foundation/archethic-cli@latest
 ```

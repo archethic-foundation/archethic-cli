@@ -3,35 +3,35 @@ on:
     types: [created]
 
 jobs:
-  release:
-    name: Release Go Binary
+  goreleaser:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
-        goos: [linux, darwin]
-        goarch: ["386", amd64, arm64]
-        exclude:
-          - goarch: "386"
-            goos: darwin
     steps:
-    - uses: actions/checkout@v3
-    - uses: wangyoucao577/go-release-action@v1
-      with:
-        github_token: ${{ secrets.RELEASE_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        binary_name: "archethic-cli"
-
-  homebrew:
-    runs-on: macos-latest
-    needs:
-      - release
-    steps:
-      - name: Update Homebrew formula
-        uses: dawidd6/action-homebrew-bump-formula@v3
+      - name: Check out code 
+        uses: actions/checkout@v4.1.1
         with:
-          token: ${{secrets.RELEASE_TOKEN}}
-          formula: archethic-cli
-          tag: ${{github.ref}}
-          revision: ${{github.sha}}
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4.1.0
+        with:
+          go-version: '1.21.4'
+      -
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5.0.0
+        with:
+          distribution: goreleaser
+          version: ${{ env.GITHUB_REF_NAME }}
+          args: release --clean
+          workdir: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+  homebrew:
+    name: Bump Homebrew formula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: archethic
+          formula-path: Formula/archethic.rb
+          homebrew-tap: archethic-foundation/homebrew-tap
+        env:
+          COMMITTER_TOKEN:  ${{ secrets.RELEASE_TOKEN }}

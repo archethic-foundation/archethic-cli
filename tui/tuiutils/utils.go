@@ -116,15 +116,15 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 			ts2.Unsubscribe("confirmation")
 			keychainAccessTransactionAddress = fmt.Sprintf("%s/explorer/transaction/%x", url, accessAddress)
 		})
-		ts2.AddOnError(func(senderContext string, message error) {
-			feedback += fmt.Sprintf("\nAccess transaction error: %s", handleTransactionError(message))
+		ts2.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
+			feedback += fmt.Sprintf("\nAccess transaction error: %s", handleTransactionError(error))
 			ts.Unsubscribe("error")
 		})
 		ts2.SendTransaction(accessTx, 100, 60)
 		ts.Unsubscribe("confirmation")
 	})
-	ts.AddOnError(func(senderContext string, message error) {
-		returnedError = handleTransactionError(message)
+	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
+		returnedError = handleTransactionError(error)
 		feedback += fmt.Sprintf("Keychain transaction error: %s", returnedError)
 		ts.Unsubscribe("error")
 	})
@@ -178,8 +178,8 @@ func updateKeychain(accessSeed []byte, endpoint string, updateFunc func(*archeth
 	ts.AddOnRequiredConfirmation(func(nbConf int) {
 		returnedFeedback = "\nKeychain's transaction confirmed."
 	})
-	ts.AddOnError(func(senderContext string, message error) {
-		returnedError = handleTransactionError(message)
+	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
+		returnedError = handleTransactionError(error)
 		ts.Unsubscribe("error")
 	})
 	ts.SendTransaction(transaction, 100, 60)
@@ -199,8 +199,8 @@ func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte
 		feedback = endpoint + "/explorer/transaction/" + strings.ToUpper(hex.EncodeToString(transaction.Address))
 	})
 
-	ts.AddOnError(func(sender string, message error) {
-		feedback = "Transaction error: " + handleTransactionError(message).Error()
+	ts.AddOnError(func(sender string, error archethic.ErrorDetails) {
+		feedback = "Transaction error: " + handleTransactionError(error).Error()
 	})
 
 	ts.SendTransaction(transaction, 100, 60)
@@ -444,12 +444,17 @@ func ExtractSeedFromMnemonic(words string) ([]byte, error) {
 }
 
 func handleTransactionError(err error) error {
+	if errorDetails, ok := err.(*archethic.ErrorDetails); ok {
+		return errors.New(errorDetails.Error())
+	}
+
 	if jsonRpcError, ok := err.(*jsonrpc.RPCError); ok {
 		if mapError, ok := jsonRpcError.Data.(map[string]interface{}); ok {
-			errorMessage := fmt.Sprintf("Error %d: %s %s", jsonRpcError.Code, jsonRpcError.Message, flattenNestedMap(mapError, ""))
+			errorMessage := fmt.Sprintf("Error %d: %s %s.", jsonRpcError.Code, jsonRpcError.Message, flattenNestedMap(mapError, ""))
 			return errors.New(errorMessage)
 		}
 	}
+
 	return err
 }
 

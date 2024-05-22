@@ -290,8 +290,6 @@ func buildKeychainTransaction(seed []byte, client *archethic.APIClient, transact
 		return err
 	}
 
-	transaction.Version = uint32(keychain.Version)
-
 	genesisAddress, err := keychain.DeriveAddress(serviceName, 0)
 	if err != nil {
 		return err

@@ -25,6 +25,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/text/unicode/norm"
+	"gopkg.in/yaml.v3"
 )
 
 func GetHashAlgorithmName(h archethic.HashAlgo) string {
@@ -117,7 +118,7 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 			keychainAccessTransactionAddress = fmt.Sprintf("%s/explorer/transaction/%x", url, accessAddress)
 		})
 		ts2.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
-			feedback += fmt.Sprintf("\nAccess transaction error: %s", handleTransactionError(error))
+			feedback += handleTransactionError(error).Error()
 			ts.Unsubscribe("error")
 		})
 		ts2.SendTransaction(accessTx, 100, 60)
@@ -125,7 +126,7 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 	})
 	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
 		returnedError = handleTransactionError(error)
-		feedback += fmt.Sprintf("Keychain transaction error: %s", returnedError)
+		feedback += returnedError.Error()
 		ts.Unsubscribe("error")
 	})
 	ts.SendTransaction(keychainTx, 100, 60)
@@ -200,7 +201,7 @@ func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte
 	})
 
 	ts.AddOnError(func(sender string, error archethic.ErrorDetails) {
-		feedback = "Transaction error: " + handleTransactionError(error).Error()
+		feedback = handleTransactionError(error).Error()
 	})
 
 	ts.SendTransaction(transaction, 100, 60)
@@ -443,9 +444,51 @@ func ExtractSeedFromMnemonic(words string) ([]byte, error) {
 	return nil, nil
 }
 
+type customError struct {
+	Error   string `yaml:"Error"`
+	Message string `yaml:"Message,omitempty"`
+	Data    any    `yaml:"Data,omitempty"`
+}
+
+func customErrorDetails(error archethic.ErrorDetails) string {
+	var message string
+
+	var throwData archethic.ErrorDetails
+
+	errDataBytes, err := json.Marshal(error.Data)
+	if err != nil {
+		return err.Error()
+	}
+	if err := json.Unmarshal(errDataBytes, &throwData); err != nil {
+		return err.Error()
+	}
+
+	var customErr customError
+	if throwData.Message == "" {
+		customErr = customError{
+			Error: fmt.Sprintf("%s (%d)", error.Message, error.Code),
+		}
+	} else {
+		message = fmt.Sprintf("%s (%d)", throwData.Message, throwData.Code)
+
+		customErr = customError{
+			Error:   fmt.Sprintf("%s (%d)", error.Message, error.Code),
+			Message: message,
+		}
+		if message != "" && throwData.Data != nil {
+			customDataDetails, _ := yaml.Marshal(throwData.Data)
+			customErr.Data = fmt.Sprintf("%s", customDataDetails)
+		}
+	}
+
+	b, _ := yaml.Marshal(customErr)
+
+	return fmt.Sprintf("\n%s", b)
+}
+
 func handleTransactionError(err error) error {
-	if errorDetails, ok := err.(*archethic.ErrorDetails); ok {
-		return errors.New(errorDetails.Error())
+	if errorDetails, ok := err.(archethic.ErrorDetails); ok {
+		return errors.New(customErrorDetails(errorDetails))
 	}
 
 	if jsonRpcError, ok := err.(*jsonrpc.RPCError); ok {

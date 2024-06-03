@@ -3,7 +3,7 @@ module github.com/archethic-foundation/archethic-cli
 go 1.20
 
 require (
-	github.com/archethic-foundation/libgo v1.0.8
+	github.com/archethic-foundation/libgo v1.0.10
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbles v0.16.1
 	github.com/charmbracelet/bubbletea v0.24.2

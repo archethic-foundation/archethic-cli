@@ -3,10 +3,9 @@ package keychaincreatetransactionui
 import (
 	"encoding/hex"
 	"fmt"
-	"strconv"
+	"math/big"
 	"strings"
 
-	"github.com/archethic-foundation/archethic-cli/cli"
 	archethic "github.com/archethic-foundation/libgo"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,7 +20,7 @@ type UcoTransferModel struct {
 
 type AddUcoTransfer struct {
 	To     []byte
-	Amount uint64
+	Amount *big.Int
 	cmds   []tea.Cmd
 }
 type DeleteUcoTransfer struct {
@@ -75,12 +74,11 @@ func (m UcoTransferModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				amountStr := m.ucoInputs[1].Value()
-				amount, err := strconv.ParseFloat(amountStr, 64)
+				amountBigInt, err := archethic.ParseBigInt(amountStr, 8)
 				if err != nil {
 					m.feedback = "Invalid amount"
 					return m, nil
 				}
-				amountBigInt := cli.ToBigInt(amount, 8)
 				m.ucoInputs[0].SetValue("")
 				m.ucoInputs[1].SetValue("")
 
@@ -183,7 +181,7 @@ func (m UcoTransferModel) View() string {
 
 	startCount := len(m.ucoInputs) + 1 // +1 for the button
 	for i, t := range m.transaction.Data.Ledger.Uco.Transfers {
-		transfer := fmt.Sprintf("%s: %f\n", hex.EncodeToString(t.To), cli.FromBigInt(t.Amount, 8))
+		transfer := fmt.Sprintf("%s: %f\n", hex.EncodeToString(t.To), archethic.FormatBigInt(t.Amount, 8))
 		if m.focusInput == startCount+i {
 			b.WriteString(focusedStyle.Render(transfer))
 			continue

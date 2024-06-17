@@ -56,13 +56,12 @@ func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction
 		if err != nil {
 			return ConfiguredTransaction{}, err
 		}
-		amountInt, err := strconv.ParseFloat(amount, 64)
-		if err != nil {
+		if _, err := strconv.ParseFloat(amount, 64); err != nil {
 			return ConfiguredTransaction{}, err
 		}
 		ucoTransfers = append(ucoTransfers, UCOTransfer{
 			To:     hex.EncodeToString(toBytes),
-			Amount: amountInt,
+			Amount: amount,
 		})
 	}
 
@@ -71,8 +70,7 @@ func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction
 	var tokenTransfers []TokenTransfer
 	for to, values := range tokenTransfersStr {
 		value := strings.Split(values, ",")
-		amountInt, err := strconv.ParseFloat(value[0], 64)
-		if err != nil {
+		if _, err := strconv.ParseFloat(value[0], 64); err != nil {
 			return ConfiguredTransaction{}, err
 		}
 		tokenId, err := strconv.ParseInt(value[2], 10, 64)
@@ -81,9 +79,9 @@ func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction
 		}
 		tokenTransfers = append(tokenTransfers, TokenTransfer{
 			To:           to,
-			Amount:       amountInt,
+			Amount:       value[0],
 			TokenAddress: value[1],
-			TokenID:      int(tokenId),
+			TokenID:      uint(tokenId),
 		})
 	}
 
@@ -168,7 +166,7 @@ func extractTransactionFromInputFlags(cmd *cobra.Command) (ConfiguredTransaction
 
 	return ConfiguredTransaction{
 		accessSeed:     accessSeedBytes,
-		index:          index,
+		index:          uint(index),
 		ucoTransfers:   ucoTransfers,
 		tokenTransfers: tokenTransfers,
 		recipients:     recipients,
@@ -230,7 +228,11 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 		if err != nil {
 			return nil, err
 		}
-		transaction.AddUcoTransfer(toBytes, ToBigInt(ucoTransfer.Amount, 8))
+		amountBigInt, err := archethic.ParseBigInt(ucoTransfer.Amount, 8)
+		if err != nil {
+			return nil, err
+		}
+		transaction.AddUcoTransfer(toBytes, amountBigInt)
 	}
 
 	// set token transfers
@@ -244,7 +246,11 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 		if err != nil {
 			return nil, err
 		}
-		transaction.AddTokenTransfer(toBytes, tokenAddress, ToBigInt(tokenTransfer.Amount, 8), tokenTransfer.TokenID)
+		amountBigInt, err := archethic.ParseBigInt(tokenTransfer.Amount, 8)
+		if err != nil {
+			return nil, err
+		}
+		transaction.AddTokenTransfer(toBytes, tokenAddress, amountBigInt, tokenTransfer.TokenID)
 	}
 
 	// set recipients
@@ -314,7 +320,7 @@ func mapOwnership(ownerships map[string]string) map[string][]string {
 	return result
 }
 
-func extractAndPrepareTransaction(cmd *cobra.Command, args []string, action func(*archethic.TransactionBuilder, []byte, archethic.Curve, bool, string, int, string, string, []byte) (interface{}, error)) {
+func extractAndPrepareTransaction(cmd *cobra.Command, args []string, action func(*archethic.TransactionBuilder, []byte, archethic.Curve, bool, string, uint, string, string, []byte) (interface{}, error)) {
 	secretKey := make([]byte, 32)
 	rand.Read(secretKey)
 
@@ -378,7 +384,7 @@ func GetSendTransactionCmd() *cobra.Command {
 		Use:   "send-transaction",
 		Short: "Send transaction",
 		Run: func(cmd *cobra.Command, args []string) {
-			extractAndPrepareTransaction(cmd, args, func(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, index int, serviceName string, storageNouncePublicKey string, seed []byte) (interface{}, error) {
+			extractAndPrepareTransaction(cmd, args, func(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, index uint, serviceName string, storageNouncePublicKey string, seed []byte) (interface{}, error) {
 				return tuiutils.SendTransaction(transaction, secretKey, curve, serviceMode, endpoint, index, serviceName, storageNouncePublicKey, seed)
 			})
 		},
@@ -393,7 +399,7 @@ func GetGetTransactionFeeCmd() *cobra.Command {
 		Use:   "get-transaction-fee",
 		Short: "Get transaction fee",
 		Run: func(cmd *cobra.Command, args []string) {
-			extractAndPrepareTransaction(cmd, args, func(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, index int, serviceName string, storageNouncePublicKey string, seed []byte) (interface{}, error) {
+			extractAndPrepareTransaction(cmd, args, func(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, index uint, serviceName string, storageNouncePublicKey string, seed []byte) (interface{}, error) {
 				return tuiutils.GetTransactionFeeJson(transaction, secretKey, curve, serviceMode, endpoint, index, serviceName, storageNouncePublicKey, seed)
 			})
 		},

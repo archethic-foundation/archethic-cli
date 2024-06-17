@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -97,7 +96,7 @@ type Model struct {
 	feedback               string
 	url                    string
 	seed                   string
-	transactionIndex       int
+	transactionIndex       uint
 	showSpinner            bool
 	Spinner                spinner.Model
 	IsInit                 bool
@@ -508,7 +507,7 @@ func sendTransaction(m *Model, curve archethic.Curve, seed []byte) TransactionSe
 func getTransactionFee(m *Model, curve archethic.Curve, seed []byte) TransactionFeeSent {
 	m.feedback = ""
 	fee, error := tuiutils.GetTransactionFee(&m.transaction, m.secretKey, curve, m.serviceMode, m.url, m.transactionIndex, m.serviceName, m.storageNouncePublicKey, seed)
-	humanReadableFee := float64(fee.Fee) / math.Pow(10, 8)
+	humanReadableFee, _ := strconv.ParseFloat(archethic.FormatBigInt(fee.Fee, 8), 64)
 	usdEquivalent := humanReadableFee * float64(fee.Rates.Usd)
 	eurEquivanlent := humanReadableFee * float64(fee.Rates.Eur)
 	m.feedback = fmt.Sprintf("Transaction fee: %f UCO (~ $%f) (~ %f€)", humanReadableFee, usdEquivalent, eurEquivanlent)

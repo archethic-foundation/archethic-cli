@@ -3,7 +3,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"math"
 	"net/url"
 	"os"
 
@@ -21,7 +20,7 @@ var (
 type SendTransactionData struct {
 	Endpoint        string          `yaml:"endpoint"`
 	AccessSeed      string          `yaml:"access_seed"`
-	Index           int             `yaml:"index"`
+	Index           uint            `yaml:"index"`
 	EllipticCurve   string          `yaml:"elliptic_curve"`
 	TransactionType string          `yaml:"transaction_type"`
 	UcoTransfers    []UCOTransfer   `yaml:"uco_transfers,omitempty"`
@@ -34,15 +33,15 @@ type SendTransactionData struct {
 }
 
 type UCOTransfer struct {
-	To     string  `yaml:"to"`
-	Amount float64 `yaml:"amount"`
+	To     string `yaml:"to"`
+	Amount string `yaml:"amount"`
 }
 
 type TokenTransfer struct {
-	To           string  `yaml:"to"`
-	Amount       float64 `yaml:"amount"`
-	TokenAddress string  `yaml:"token_address"`
-	TokenID      int     `yaml:"token_id"`
+	To           string `yaml:"to"`
+	Amount       string `yaml:"amount"`
+	TokenAddress string `yaml:"token_address"`
+	TokenID      uint   `yaml:"token_id"`
 }
 
 type Ownership struct {
@@ -58,7 +57,7 @@ type Recipient struct {
 
 type ConfiguredTransaction struct {
 	accessSeed     []byte
-	index          int
+	index          uint
 	ucoTransfers   []UCOTransfer
 	tokenTransfers []TokenTransfer
 	recipients     []Recipient
@@ -339,12 +338,4 @@ func validateRequiredFlags(flags *pflag.FlagSet, sshFlagKey, sshPathFlagKey, see
 func GetFirstSshKeyDefaultPath() string {
 	home, _ := os.UserHomeDir()
 	return home + "/.ssh/id_ed25519"
-}
-
-func ToBigInt(number float64, decimals int) uint64 {
-	return uint64(number * math.Pow(10, float64(decimals)))
-}
-
-func FromBigInt(number uint64, decimals int) float64 {
-	return float64(number) / math.Pow(10, float64(decimals))
 }

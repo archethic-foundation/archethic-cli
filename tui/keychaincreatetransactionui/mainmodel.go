@@ -54,7 +54,7 @@ type MainModel struct {
 }
 
 type UpdateTransactionIndex struct {
-	Index int
+	Index uint
 	cmds  []tea.Cmd
 }
 

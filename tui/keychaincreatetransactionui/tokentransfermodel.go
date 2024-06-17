@@ -3,10 +3,10 @@ package keychaincreatetransactionui
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
-	"github.com/archethic-foundation/archethic-cli/cli"
 	archethic "github.com/archethic-foundation/libgo"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,8 +21,8 @@ type TokenTransferModel struct {
 
 type AddTokenTransfer struct {
 	To           []byte
-	Amount       uint64
-	TokenId      int
+	Amount       *big.Int
+	TokenId      uint
 	TokenAddress []byte
 	cmds         []tea.Cmd
 }
@@ -77,8 +77,7 @@ func (m TokenTransferModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				amountStr := m.tokenInputs[1].Value()
-				amount, err := strconv.ParseFloat(amountStr, 64)
-				amountBigInt := cli.ToBigInt(amount, 8)
+				amountBigInt, err := archethic.ParseBigInt(amountStr, 8)
 				if err != nil {
 					m.feedback = "Invalid amount"
 					return m, nil
@@ -104,7 +103,7 @@ func (m TokenTransferModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m, cmds := updateTokenTransferFocus(m)
 				cmds = append(cmds, m.updateTokenTransferInputs(msg)...)
 				return m, func() tea.Msg {
-					return AddTokenTransfer{To: to, Amount: amountBigInt, TokenAddress: tokenAddress, TokenId: tokenId, cmds: cmds}
+					return AddTokenTransfer{To: to, Amount: amountBigInt, TokenAddress: tokenAddress, TokenId: uint(tokenId), cmds: cmds}
 				}
 			}
 		case "d":
@@ -188,7 +187,7 @@ func (m TokenTransferModel) View() string {
 
 	startCount := len(m.tokenInputs) + 1 // +1 for the button
 	for i, t := range m.transaction.Data.Ledger.Token.Transfers {
-		transfer := fmt.Sprintf("%s : %f - %s %d \n", hex.EncodeToString(t.To), cli.FromBigInt(t.Amount, 8), hex.EncodeToString(t.TokenAddress), t.TokenId)
+		transfer := fmt.Sprintf("%s : %f - %s %d \n", hex.EncodeToString(t.To), archethic.FormatBigInt(t.Amount, 8), hex.EncodeToString(t.TokenAddress), t.TokenId)
 		if m.focusInput == startCount+i {
 			b.WriteString(focusedStyle.Render(transfer))
 			continue

@@ -98,7 +98,7 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 	keychainTransactionAddress := ""
 	keychainAccessTransactionAddress := ""
 	ts := archethic.NewTransactionSender(client)
-	ts.AddOnRequiredConfirmation(func(nbConf int) {
+	ts.AddOnRequiredConfirmation(func(nbConf uint) {
 		feedback += "\nKeychain's transaction confirmed."
 
 		keychainSeed = hex.EncodeToString(randomSeed)
@@ -111,20 +111,20 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 		}
 		accessTx.OriginSign(originPrivateKey)
 		ts2 := archethic.NewTransactionSender(client)
-		ts2.AddOnRequiredConfirmation(func(nbConf int) {
+		ts2.AddOnRequiredConfirmation(func(nbConf uint) {
 			feedback += "\nKeychain access transaction confirmed."
 			ts2.Unsubscribe("confirmation")
 			keychainAccessTransactionAddress = fmt.Sprintf("%s/explorer/transaction/%x", url, accessAddress)
 		})
-		ts2.AddOnError(func(senderContext string, message error) {
-			feedback += fmt.Sprintf("\nAccess transaction error: %s", handleTransactionError(message))
+		ts2.AddOnError(func(senderContext string, err archethic.ErrorDetails) {
+			feedback += fmt.Sprintf("\nAccess transaction error: %s", handleTransactionError(err))
 			ts.Unsubscribe("error")
 		})
 		ts2.SendTransaction(accessTx, 100, 60)
 		ts.Unsubscribe("confirmation")
 	})
-	ts.AddOnError(func(senderContext string, message error) {
-		returnedError = handleTransactionError(message)
+	ts.AddOnError(func(senderContext string, err archethic.ErrorDetails) {
+		returnedError = handleTransactionError(err)
 		feedback += fmt.Sprintf("Keychain transaction error: %s", returnedError)
 		ts.Unsubscribe("error")
 	})
@@ -175,11 +175,11 @@ func updateKeychain(accessSeed []byte, endpoint string, updateFunc func(*archeth
 	returnedError = nil
 
 	ts := archethic.NewTransactionSender(&client)
-	ts.AddOnRequiredConfirmation(func(nbConf int) {
+	ts.AddOnRequiredConfirmation(func(nbConf uint) {
 		returnedFeedback = "\nKeychain's transaction confirmed."
 	})
-	ts.AddOnError(func(senderContext string, message error) {
-		returnedError = handleTransactionError(message)
+	ts.AddOnError(func(senderContext string, err archethic.ErrorDetails) {
+		returnedError = handleTransactionError(err)
 		ts.Unsubscribe("error")
 	})
 	ts.SendTransaction(transaction, 100, 60)
@@ -187,7 +187,7 @@ func updateKeychain(accessSeed []byte, endpoint string, updateFunc func(*archeth
 	return returnedFeedback, returnedError
 }
 
-func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex int, serviceName string, storageNouncePublicKey string, seed []byte) (string, error) {
+func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex uint, serviceName string, storageNouncePublicKey string, seed []byte) (string, error) {
 	err := buildTransactionToSend(transaction, secretKey, curve, serviceMode, endpoint, transactionIndex, serviceName, storageNouncePublicKey, seed)
 	if err != nil {
 		return "", err
@@ -199,15 +199,15 @@ func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte
 		feedback = endpoint + "/explorer/transaction/" + strings.ToUpper(hex.EncodeToString(transaction.Address))
 	})
 
-	ts.AddOnError(func(sender string, message error) {
-		feedback = "Transaction error: " + handleTransactionError(message).Error()
+	ts.AddOnError(func(sender string, err archethic.ErrorDetails) {
+		feedback = "Transaction error: " + handleTransactionError(err).Error()
 	})
 
 	ts.SendTransaction(transaction, 100, 60)
 	return feedback, nil
 }
 
-func GetTransactionFeeJson(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex int, serviceName string, storageNouncePublicKey string, seed []byte) (string, error) {
+func GetTransactionFeeJson(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex uint, serviceName string, storageNouncePublicKey string, seed []byte) (string, error) {
 	fee, err := GetTransactionFee(transaction, secretKey, curve, serviceMode, endpoint, transactionIndex, serviceName, storageNouncePublicKey, seed)
 	if err != nil {
 		return "", err
@@ -219,7 +219,7 @@ func GetTransactionFeeJson(transaction *archethic.TransactionBuilder, secretKey 
 	return string(feeBytes), nil
 }
 
-func GetTransactionFee(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex int, serviceName string, storageNouncePublicKey string, seed []byte) (archethic.Fee, error) {
+func GetTransactionFee(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex uint, serviceName string, storageNouncePublicKey string, seed []byte) (archethic.Fee, error) {
 	err := buildTransactionToSend(transaction, secretKey, curve, serviceMode, endpoint, transactionIndex, serviceName, storageNouncePublicKey, seed)
 	if err != nil {
 		return archethic.Fee{}, err
@@ -232,7 +232,7 @@ func GetTransactionFee(transaction *archethic.TransactionBuilder, secretKey []by
 	return fee, nil
 }
 
-func buildTransactionToSend(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex int, serviceName string, storageNouncePublicKey string, seed []byte) error {
+func buildTransactionToSend(transaction *archethic.TransactionBuilder, secretKey []byte, curve archethic.Curve, serviceMode bool, endpoint string, transactionIndex uint, serviceName string, storageNouncePublicKey string, seed []byte) error {
 	if len(transaction.Data.Code) > 0 {
 		ownershipIndex := -1
 		for i, ownership := range transaction.Data.Ownerships {
@@ -350,7 +350,7 @@ func promptSecret(message string) string {
 	return string(passphrase)
 }
 
-func GetLastTransactionIndex(url string, curve archethic.Curve, seed []byte) (int, error) {
+func GetLastTransactionIndex(url string, curve archethic.Curve, seed []byte) (uint, error) {
 	client := archethic.NewAPIClient(url)
 	address, err := archethic.DeriveAddress(seed, 0, curve, archethic.SHA256)
 	if err != nil {

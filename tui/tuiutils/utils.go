@@ -25,6 +25,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/text/unicode/norm"
+	"gopkg.in/yaml.v3"
 )
 
 func GetHashAlgorithmName(h archethic.HashAlgo) string {
@@ -116,16 +117,16 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 			ts2.Unsubscribe("confirmation")
 			keychainAccessTransactionAddress = fmt.Sprintf("%s/explorer/transaction/%x", url, accessAddress)
 		})
-		ts2.AddOnError(func(senderContext string, err archethic.ErrorDetails) {
-			feedback += fmt.Sprintf("\nAccess transaction error: %s", handleTransactionError(err))
+		ts2.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
+			feedback += handleTransactionError(error).Error()
 			ts.Unsubscribe("error")
 		})
 		ts2.SendTransaction(accessTx, 100, 60)
 		ts.Unsubscribe("confirmation")
 	})
-	ts.AddOnError(func(senderContext string, err archethic.ErrorDetails) {
-		returnedError = handleTransactionError(err)
-		feedback += fmt.Sprintf("Keychain transaction error: %s", returnedError)
+	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
+		returnedError = handleTransactionError(error)
+		feedback += returnedError.Error()
 		ts.Unsubscribe("error")
 	})
 	ts.SendTransaction(keychainTx, 100, 60)
@@ -178,8 +179,8 @@ func updateKeychain(accessSeed []byte, endpoint string, updateFunc func(*archeth
 	ts.AddOnRequiredConfirmation(func(nbConf uint) {
 		returnedFeedback = "\nKeychain's transaction confirmed."
 	})
-	ts.AddOnError(func(senderContext string, err archethic.ErrorDetails) {
-		returnedError = handleTransactionError(err)
+	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
+		returnedError = handleTransactionError(error)
 		ts.Unsubscribe("error")
 	})
 	ts.SendTransaction(transaction, 100, 60)
@@ -199,8 +200,8 @@ func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte
 		feedback = endpoint + "/explorer/transaction/" + strings.ToUpper(hex.EncodeToString(transaction.Address))
 	})
 
-	ts.AddOnError(func(sender string, err archethic.ErrorDetails) {
-		feedback = "Transaction error: " + handleTransactionError(err).Error()
+	ts.AddOnError(func(sender string, error archethic.ErrorDetails) {
+		feedback = handleTransactionError(error).Error()
 	})
 
 	ts.SendTransaction(transaction, 100, 60)
@@ -289,8 +290,6 @@ func buildKeychainTransaction(seed []byte, client *archethic.APIClient, transact
 	if err != nil {
 		return err
 	}
-
-	transaction.Version = uint32(keychain.Version)
 
 	genesisAddress, err := keychain.DeriveAddress(serviceName, 0)
 	if err != nil {
@@ -443,13 +442,60 @@ func ExtractSeedFromMnemonic(words string) ([]byte, error) {
 	return nil, nil
 }
 
+type customError struct {
+	Error   string `yaml:"Error"`
+	Message string `yaml:"Message,omitempty"`
+	Data    any    `yaml:"Data,omitempty"`
+}
+
+func customErrorDetails(error archethic.ErrorDetails) string {
+	var message string
+
+	var throwData archethic.ErrorDetails
+
+	errDataBytes, err := json.Marshal(error.Data)
+	if err != nil {
+		return err.Error()
+	}
+	if err := json.Unmarshal(errDataBytes, &throwData); err != nil {
+		return err.Error()
+	}
+
+	var customErr customError
+	if throwData.Message == "" {
+		customErr = customError{
+			Error: fmt.Sprintf("%s (%d)", error.Message, error.Code),
+		}
+	} else {
+		message = fmt.Sprintf("%s (%d)", throwData.Message, throwData.Code)
+
+		customErr = customError{
+			Error:   fmt.Sprintf("%s (%d)", error.Message, error.Code),
+			Message: message,
+		}
+		if message != "" && throwData.Data != nil {
+			customDataDetails, _ := yaml.Marshal(throwData.Data)
+			customErr.Data = fmt.Sprintf("%s", customDataDetails)
+		}
+	}
+
+	b, _ := yaml.Marshal(customErr)
+
+	return fmt.Sprintf("\n%s", b)
+}
+
 func handleTransactionError(err error) error {
+	if errorDetails, ok := err.(archethic.ErrorDetails); ok {
+		return errors.New(customErrorDetails(errorDetails))
+	}
+
 	if jsonRpcError, ok := err.(*jsonrpc.RPCError); ok {
 		if mapError, ok := jsonRpcError.Data.(map[string]interface{}); ok {
-			errorMessage := fmt.Sprintf("Error %d: %s %s", jsonRpcError.Code, jsonRpcError.Message, flattenNestedMap(mapError, ""))
+			errorMessage := fmt.Sprintf("Error %d: %s %s.", jsonRpcError.Code, jsonRpcError.Message, flattenNestedMap(mapError, ""))
 			return errors.New(errorMessage)
 		}
 	}
+
 	return err
 }
 

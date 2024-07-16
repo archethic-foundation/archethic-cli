@@ -117,15 +117,15 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 			ts2.Unsubscribe("confirmation")
 			keychainAccessTransactionAddress = fmt.Sprintf("%s/explorer/transaction/%x", url, accessAddress)
 		})
-		ts2.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
-			feedback += handleTransactionError(error).Error()
+		ts2.AddOnError(func(context string, error archethic.ErrorDetails) {
+			feedback += handleTransactionError(context, error).Error()
 			ts.Unsubscribe("error")
 		})
 		ts2.SendTransaction(accessTx, 100, 60)
 		ts.Unsubscribe("confirmation")
 	})
-	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
-		returnedError = handleTransactionError(error)
+	ts.AddOnError(func(context string, error archethic.ErrorDetails) {
+		returnedError = handleTransactionError(context, error)
 		feedback += returnedError.Error()
 		ts.Unsubscribe("error")
 	})
@@ -172,15 +172,15 @@ func updateKeychain(accessSeed []byte, endpoint string, updateFunc func(*archeth
 	transaction.OriginSign(originPrivateKey)
 
 	var returnedError error
-	var returnedFeedback = ""
+	returnedFeedback := ""
 	returnedError = nil
 
 	ts := archethic.NewTransactionSender(&client)
 	ts.AddOnRequiredConfirmation(func(nbConf int) {
 		returnedFeedback = "\nKeychain's transaction confirmed."
 	})
-	ts.AddOnError(func(senderContext string, error archethic.ErrorDetails) {
-		returnedError = handleTransactionError(error)
+	ts.AddOnError(func(context string, error archethic.ErrorDetails) {
+		returnedError = handleTransactionError(context, error)
 		ts.Unsubscribe("error")
 	})
 	ts.SendTransaction(transaction, 100, 60)
@@ -200,8 +200,8 @@ func SendTransaction(transaction *archethic.TransactionBuilder, secretKey []byte
 		feedback = endpoint + "/explorer/transaction/" + strings.ToUpper(hex.EncodeToString(transaction.Address))
 	})
 
-	ts.AddOnError(func(sender string, error archethic.ErrorDetails) {
-		feedback = handleTransactionError(error).Error()
+	ts.AddOnError(func(context string, error archethic.ErrorDetails) {
+		feedback = handleTransactionError(context, error).Error()
 	})
 
 	ts.SendTransaction(transaction, 100, 60)
@@ -228,7 +228,7 @@ func GetTransactionFee(transaction *archethic.TransactionBuilder, secretKey []by
 	client := archethic.NewAPIClient(endpoint)
 	fee, err := client.GetTransactionFee(transaction)
 	if err != nil {
-		return archethic.Fee{}, handleTransactionError(err)
+		return archethic.Fee{}, handleTransactionError("INVALID_TRANSACTION", err)
 	}
 	return fee, nil
 }
@@ -336,7 +336,6 @@ func GetSSHPrivateKey(privateKeyPath string) ([]byte, error) {
 		return nil, errors.New("Only RSA, ECDSA and DSA keys are supported, got " + reflect.TypeOf(pvKey).String())
 	}
 	return pvKeyBytes, nil
-
 }
 
 func promptSecret(message string) string {
@@ -448,35 +447,20 @@ type customError struct {
 	Data    any    `yaml:"Data,omitempty"`
 }
 
-func customErrorDetails(error archethic.ErrorDetails) string {
+func customErrorDetails(context string, error archethic.ErrorDetails) string {
 	var message string
 
-	var throwData archethic.ErrorDetails
-
-	errDataBytes, err := json.Marshal(error.Data)
-	if err != nil {
-		return err.Error()
-	}
-	if err := json.Unmarshal(errDataBytes, &throwData); err != nil {
-		return err.Error()
-	}
-
 	var customErr customError
-	if throwData.Message == "" {
-		customErr = customError{
-			Error: fmt.Sprintf("%s (%d)", error.Message, error.Code),
-		}
-	} else {
-		message = fmt.Sprintf("%s (%d)", throwData.Message, throwData.Code)
+	message = fmt.Sprintf("%s (%d)", error.Message, error.Code)
 
-		customErr = customError{
-			Error:   fmt.Sprintf("%s (%d)", error.Message, error.Code),
-			Message: message,
-		}
-		if message != "" && throwData.Data != nil {
-			customDataDetails, _ := yaml.Marshal(throwData.Data)
-			customErr.Data = fmt.Sprintf("%s", customDataDetails)
-		}
+	customErr = customError{
+		Error:   context,
+		Message: message,
+	}
+
+	if error.Data != nil {
+		customDataDetails, _ := yaml.Marshal(error.Data)
+		customErr.Data = fmt.Sprintf("%s", customDataDetails)
 	}
 
 	b, _ := yaml.Marshal(customErr)
@@ -484,9 +468,9 @@ func customErrorDetails(error archethic.ErrorDetails) string {
 	return fmt.Sprintf("\n%s", b)
 }
 
-func handleTransactionError(err error) error {
+func handleTransactionError(context string, err error) error {
 	if errorDetails, ok := err.(archethic.ErrorDetails); ok {
-		return errors.New(customErrorDetails(errorDetails))
+		return errors.New(customErrorDetails(context, errorDetails))
 	}
 
 	if jsonRpcError, ok := err.(*jsonrpc.RPCError); ok {

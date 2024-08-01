@@ -68,7 +68,7 @@ func CreateKeychain(url string, accessSeed []byte) (string, string, string, stri
 	rand.Read(randomSeed)
 
 	keychain := archethic.NewKeychain(randomSeed)
-	keychain.AddService("uco", "m/650'/0/0", archethic.ED25519, archethic.SHA256)
+	keychain.AddService("uco", "m/650'/0", archethic.ED25519, archethic.SHA256)
 	keychain.AddAuthorizedPublicKey(publicKey)
 
 	accessAddress, err := archethic.DeriveAddress(accessSeed, 1, archethic.ED25519, archethic.SHA256)

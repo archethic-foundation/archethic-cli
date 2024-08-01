@@ -277,7 +277,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// set a default derivation path
 			if m.focusIndex == len(m.inputs)+6+len(m.serviceNames)+1 {
 				serviceName := m.newServiceInputs[0].Value()
-				derivationPath := "m/650'/" + serviceName + msg.String() + "/0"
+				derivationPath := "m/650'/" + serviceName + msg.String()
 				m.newServiceInputs[1].SetValue(derivationPath)
 			}
 		}

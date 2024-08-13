@@ -30,6 +30,7 @@ func extractTransactionFromInputFile(config string) (ConfiguredTransaction, Send
 	if err != nil {
 		return ConfiguredTransaction{}, data, err
 	}
+
 	return ConfiguredTransaction{
 		accessSeed:     seedByte,
 		index:          data.Index,
@@ -257,11 +258,13 @@ func configureTransaction(configuredTransaction ConfiguredTransaction, txType ar
 		if recipient.Action == "" && recipient.ArgsJson == "" {
 			transaction.AddRecipient(recipientBytes)
 		} else {
+			d := json.NewDecoder(strings.NewReader(recipient.ArgsJson))
+			d.UseNumber()
 			var args []interface{}
-			err := json.Unmarshal([]byte(recipient.ArgsJson), &args)
-			if err != nil {
+			if err := d.Decode(&args); err != nil {
 				return nil, err
 			}
+
 			transaction.AddRecipientWithNamedAction(recipientBytes, []byte(recipient.Action), args)
 		}
 	}

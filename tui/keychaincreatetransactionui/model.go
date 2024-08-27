@@ -225,13 +225,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Action == "" && msg.ArgsJson == "" {
 			m.transaction.AddRecipient(msg.Address)
 		} else {
+			d := json.NewDecoder(strings.NewReader(msg.ArgsJson))
+			d.UseNumber()
 			var args []interface{}
-			err := json.Unmarshal([]byte(msg.ArgsJson), &args)
-			if err == nil {
-				m.transaction.AddRecipientWithNamedAction(msg.Address, []byte(msg.Action), args)
-			} else {
+			if err := d.Decode(&args); err != nil {
 				m.feedback = "Invalid JSON"
+
+			} else {
+				m.transaction.AddRecipientWithNamedAction(msg.Address, []byte(msg.Action), args)
 			}
+
 		}
 		m.recipientsModel.transaction = &m.transaction
 		cmds = msg.cmds

@@ -181,7 +181,7 @@ func (m UcoTransferModel) View() string {
 
 	startCount := len(m.ucoInputs) + 1 // +1 for the button
 	for i, t := range m.transaction.Data.Ledger.Uco.Transfers {
-		transfer := fmt.Sprintf("%s: %f\n", hex.EncodeToString(t.To), archethic.FormatBigInt(t.Amount, 8))
+		transfer := fmt.Sprintf("%s: %s\n", hex.EncodeToString(t.To), archethic.FormatBigInt(t.Amount, 8))
 		if m.focusInput == startCount+i {
 			b.WriteString(focusedStyle.Render(transfer))
 			continue

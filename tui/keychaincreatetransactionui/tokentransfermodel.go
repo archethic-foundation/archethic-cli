@@ -187,7 +187,7 @@ func (m TokenTransferModel) View() string {
 
 	startCount := len(m.tokenInputs) + 1 // +1 for the button
 	for i, t := range m.transaction.Data.Ledger.Token.Transfers {
-		transfer := fmt.Sprintf("%s : %f - %s %d \n", hex.EncodeToString(t.To), archethic.FormatBigInt(t.Amount, 8), hex.EncodeToString(t.TokenAddress), t.TokenId)
+		transfer := fmt.Sprintf("%s : %s - %s %d \n", hex.EncodeToString(t.To), archethic.FormatBigInt(t.Amount, 8), hex.EncodeToString(t.TokenAddress), t.TokenId)
 		if m.focusInput == startCount+i {
 			b.WriteString(focusedStyle.Render(transfer))
 			continue
